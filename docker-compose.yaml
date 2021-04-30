@@ -1,0 +1,49 @@
+version: "3"
+
+services:
+    app:
+        container_name: app
+        build: 
+            context: ./node
+        image: dougfugita/fc_defcomp_nodeapp
+        command: dockerize -wait tcp://db:3306 -timeout 20s npm start
+        volumes:
+            - ./node/:/usr/app
+        networks: 
+            - fc-node-network
+        depends_on: 
+            - db
+        networks:
+            - fc-node-network
+
+    db:
+        image: mysql:5.7
+        command: --innodb-use-native-aio=0
+        container_name: db
+        environment: 
+            - MYSQL_ROOT_PASSWORD=root
+            - MYSQL_DATABASE=nodedb
+        restart: always
+        networks:
+            - fc-node-network
+        volumes:
+            -   ./:/docker-entrypoint-initdb.d/
+        networks:
+            - fc-node-network
+
+    nginx:
+        build:
+            context: ./nginx
+        image: dougfugita/fc_defcomp_nginx
+        container_name: nginx
+        networks:
+        - fc-node-network
+        ports:
+        - "8080:80"
+        depends_on: 
+            - app        
+
+
+networks: 
+    fc-node-network:
+        driver: bridge
